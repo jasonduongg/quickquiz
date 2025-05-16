@@ -14,7 +14,6 @@ export default function CreateQuizModal({ isOpen, onClose, onQuizCreated }: Crea
     const [prompt, setPrompt] = useState('');
     const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
     const [numQuestions, setNumQuestions] = useState(5);
-    const [additionalContext, setAdditionalContext] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -34,8 +33,7 @@ export default function CreateQuizModal({ isOpen, onClose, onQuizCreated }: Crea
                 body: JSON.stringify({
                     prompt,
                     difficulty,
-                    numQuestions,
-                    additionalContext: additionalContext.trim() || undefined
+                    numQuestions
                 }),
             });
 
@@ -114,19 +112,6 @@ export default function CreateQuizModal({ isOpen, onClose, onQuizCreated }: Crea
                                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                             />
                         </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="additionalContext" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Additional Context (Optional)
-                        </label>
-                        <textarea
-                            id="additionalContext"
-                            value={additionalContext}
-                            onChange={(e) => setAdditionalContext(e.target.value)}
-                            placeholder="e.g., 'Focus on Python 3.x features' or 'Include questions about major battles'"
-                            className="w-full h-20 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                        />
                     </div>
 
                     {error && (

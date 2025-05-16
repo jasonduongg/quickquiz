@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useDebounce } from '@/lib/hooks/useDebounce';
 
 interface SearchBarProps {
     onSearch: (query: string) => void;
@@ -9,11 +8,10 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSearch }: SearchBarProps) {
     const [searchQuery, setSearchQuery] = useState('');
-    const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
     useEffect(() => {
-        onSearch(debouncedSearchQuery);
-    }, [debouncedSearchQuery, onSearch]);
+        onSearch(searchQuery);
+    }, [searchQuery, onSearch]);
 
     const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);

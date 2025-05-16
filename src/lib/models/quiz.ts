@@ -67,14 +67,13 @@ export interface QuizAttempt {
     _id?: ObjectId;
     quizId: ObjectId;
     userId: ObjectId;
-    score: number;
-    totalQuestions: number;
-    answers: {
-        questionIndex: number;
-        selectedOption: string;
-        isCorrect: boolean;
+    correct: number;
+    total: number;
+    feedback: {
+        id: number;
+        yourAnswer: string;
+        correctAnswer: string;
     }[];
-    timeSpent: number;
     completedAt: Date;
 }
 
@@ -175,7 +174,7 @@ export async function getQuizStats(quizId: string): Promise<QuizStats> {
     }
 
     const uniqueUsers = new Set(attempts.map(a => a.userId.toString())).size;
-    const scores = attempts.map(a => (a.score / a.totalQuestions) * 100);
+    const scores = attempts.map(a => (a.correct / a.total) * 100);
     const averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
     const bestScore = Math.max(...scores);
 
@@ -203,7 +202,7 @@ export async function getUserQuizStats(quizId: string, userId: string): Promise<
         return null;
     }
 
-    const scores = attempts.map(a => (a.score / a.totalQuestions) * 100);
+    const scores = attempts.map(a => (a.correct / a.total) * 100);
     const averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
     const bestScore = Math.max(...scores);
 

@@ -12,6 +12,18 @@ interface QuizQuestion {
     explanation?: string;
 }
 
+interface QuizFeedback {
+    id: number;
+    yourAnswer: string;
+    correctAnswer: string;
+}
+
+interface QuizResult {
+    correct: number;
+    total: number;
+    feedback: QuizFeedback[];
+}
+
 interface Quiz {
     _id: string;
     title: string;
@@ -36,7 +48,7 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
     const [error, setError] = useState<string | null>(null);
     const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
     const [isSubmitted, setIsSubmitted] = useState(false);
-    const [currentAttempt, setCurrentAttempt] = useState<{ correct: number; total: number; attemptId: string } | null>(null);
+    const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
 
     useEffect(() => {
         const fetchQuiz = async () => {
@@ -84,7 +96,7 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
             }
 
             const result = await response.json();
-            setCurrentAttempt(result);
+            setQuizResult(result);
             setIsSubmitted(true);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
@@ -144,7 +156,7 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
                                             onChange={() => handleAnswerSelect(question.id, optionIndex.toString())}
                                             className="h-4 w-4 text-blue-600"
                                         />
-                                        <span>{option}</span>
+                                        <span>{String.fromCharCode(65 + optionIndex)}. {option}</span>
                                     </label>
                                 ))}
                             </div>
@@ -161,11 +173,58 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
                     </div>
                 </form>
             ) : (
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-                    <h2 className="text-2xl font-bold mb-4">Quiz Results</h2>
-                    <p className="text-lg mb-4">
-                        You scored {currentAttempt?.correct} out of {currentAttempt?.total} questions correctly.
-                    </p>
+                <div className="space-y-6">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                        <h2 className="text-2xl font-bold mb-4">Quiz Results</h2>
+                        <p className="text-lg mb-4">
+                            You scored {quizResult?.correct} out of {quizResult?.total} questions correctly.
+                        </p>
+                    </div>
+
+                    <div className="space-y-4">
+                        {quizResult?.feedback.map((feedback) => {
+                            const question = quiz.questions[feedback.id - 1];
+                            const isCorrect = feedback.yourAnswer === feedback.correctAnswer;
+
+                            return (
+                                <div
+                                    key={feedback.id}
+                                    className={`bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border-l-4 ${isCorrect ? 'border-green-500' : 'border-red-500'
+                                        }`}
+                                >
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="text-lg font-medium">
+                                            Question {feedback.id}
+                                        </h3>
+                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${isCorrect
+                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                            }`}>
+                                            {isCorrect ? 'Correct' : 'Incorrect'}
+                                        </span>
+                                    </div>
+                                    <p className="text-gray-700 dark:text-gray-300 mb-4">{question.text}</p>
+                                    <div className="space-y-2">
+                                        <p className="text-sm">
+                                            <span className="font-medium">Your answer:</span>{' '}
+                                            <span className={isCorrect ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                                {feedback.yourAnswer}
+                                            </span>
+                                        </p>
+                                        {!isCorrect && (
+                                            <p className="text-sm">
+                                                <span className="font-medium">Correct answer:</span>{' '}
+                                                <span className="text-green-600 dark:text-green-400">
+                                                    {feedback.correctAnswer}
+                                                </span>
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
                     <div className="mt-6">
                         <Link
                             href="/"

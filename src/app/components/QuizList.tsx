@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { EyeIcon, TrashIcon, PlusIcon, UserIcon } from '@heroicons/react/24/outline';
+import CreateQuizModal from '@/components/CreateQuizModal';
 
 interface QuizQuestion {
     id: number;
@@ -52,28 +53,31 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [deletingQuizId, setDeletingQuizId] = useState<string | null>(null);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isGlobalGridView, setIsGlobalGridView] = useState(false);
+    const [isMyQuizzesGridView, setIsMyQuizzesGridView] = useState(false);
+
+    const fetchQuizzes = async () => {
+        try {
+            const response = await fetch('/api/quizzes?includeStats=true');
+            if (!response.ok) {
+                throw new Error('Failed to fetch quizzes');
+            }
+            const data = await response.json();
+
+            const transformedQuizzes = data.map((item: { quiz: Quiz, stats: QuizStats }) => ({
+                ...item.quiz,
+                stats: item.stats
+            }));
+            setQuizzes(transformedQuizzes);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchQuizzes = async () => {
-            try {
-                const response = await fetch('/api/quizzes?includeStats=true');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch quizzes');
-                }
-                const data = await response.json();
-                // Transform the data to match our Quiz interface
-                const transformedQuizzes = data.map((item: { quiz: Quiz, stats: QuizStats }) => ({
-                    ...item.quiz,
-                    stats: item.stats
-                }));
-                setQuizzes(transformedQuizzes);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'An error occurred');
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchQuizzes();
     }, []);
 
@@ -113,12 +117,30 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                 throw new Error(data.error || 'Failed to delete quiz');
             }
 
-            // Remove the deleted quiz from the state
             setQuizzes(quizzes.filter(quiz => quiz._id !== quizId));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to delete quiz');
         } finally {
             setDeletingQuizId(null);
+        }
+    };
+
+    const handleQuizCreated = () => {
+        // Refresh the quiz list
+        fetchQuizzes();
+    };
+
+    const handleGlobalViewToggle = () => {
+        setIsGlobalGridView(!isGlobalGridView);
+        if (!isGlobalGridView) {
+            setIsMyQuizzesGridView(false); // Hide my quizzes when showing global grid
+        }
+    };
+
+    const handleMyQuizzesViewToggle = () => {
+        setIsMyQuizzesGridView(!isMyQuizzesGridView);
+        if (!isMyQuizzesGridView) {
+            setIsGlobalGridView(false); // Hide global quizzes when showing my quizzes grid
         }
     };
 
@@ -138,13 +160,13 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
         );
     }
 
-    const QuizCard = ({ quiz }: { quiz: Quiz }) => {
+    const QuizCard = ({ quiz, isCarousel = false }: { quiz: Quiz, isCarousel?: boolean }) => {
         return (
-            <div className="flex flex-col min-w-[280px] w-[280px]">
-                <div className="relative">
+            <div className={`flex flex-col ${isCarousel ? 'min-w-[280px] w-[280px]' : 'w-full'}`}>
+                <div className="relative w-full">
                     <Link
                         href={`/quiz/${quiz._id}`}
-                        className="block h-[200px] rounded-lg overflow-hidden"
+                        className={`block ${isCarousel ? 'h-[200px]' : 'aspect-[4/3]'} rounded-lg overflow-hidden`}
                     >
                         <div className="w-full h-full perspective-1000">
                             <motion.div
@@ -178,7 +200,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
 
                                 {/* Back - Stats */}
                                 <motion.div
-                                    className="absolute w-full h-full bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm cursor-pointer"
+                                    className="absolute w-full h-full bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm cursor-pointer"
                                     style={{
                                         backfaceVisibility: "hidden",
                                         WebkitBackfaceVisibility: "hidden",
@@ -230,7 +252,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                         </div>
 
                                         {/* Stats below divider */}
-                                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                                        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 space-y-1">
                                             <div className="flex items-center">
                                                 <span className="text-xs font-bold text-gray-900 dark:text-white">Questions:</span>
                                                 <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{quiz.questions.length}</span>
@@ -252,18 +274,18 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                     </Link>
                 </div>
 
-                <div className="mt-1 px-1 min-h-[2rem]">
+                <div className="mt-0.5 px-1">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-med font-bold text-black">
+                        <h2 className="text-sm font-bold text-black truncate max-w-[70%]">
                             {quiz.title}
                         </h2>
-                        <div className="flex items-center gap-3 text-gray-600">
-                            <div className="flex items-center gap-1">
-                                <UserIcon className="w-4 h-4" />
+                        <div className="flex items-center gap-1.5 text-gray-600">
+                            <div className="flex items-center gap-0.5">
+                                <UserIcon className="w-3.5 h-3.5" />
                                 <span className="text-xs">{quiz.stats?.uniqueUsers ?? 0}</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                                <EyeIcon className="w-4 h-4" />
+                            <div className="flex items-center gap-0.5">
+                                <EyeIcon className="w-3.5 h-3.5" />
                                 <span className="text-xs">{quiz.stats?.totalAttempts ?? 0}</span>
                             </div>
                         </div>
@@ -274,59 +296,172 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
     };
 
     return (
-        <div className="space-y-2">
-            {/* My Quizzes Carousel */}
-            {session?.user?.id && myQuizzes.length > 0 && (
+        <div className="space-y-8">
+            {/* My Quizzes Section */}
+            {session?.user?.id && !isGlobalGridView && (
                 <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-xl font-bold text-black">My Quizzes</h2>
-                        <Link
-                            href="/create"
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-xl font-bold text-black">My Quizzes</h2>
+                            {myQuizzes.length > 0 && (
+                                <button
+                                    onClick={() => setIsCreateModalOpen(true)}
+                                    className="flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
+                                >
+                                    <PlusIcon className="w-4 h-4" />
+                                    <span>Create</span>
+                                </button>
+                            )}
+                        </div>
+                        {myQuizzes.length > 0 && (
+                            <button
+                                onClick={handleMyQuizzesViewToggle}
+                                className="flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
+                            >
+                                {isMyQuizzesGridView ? 'Show Carousel' : 'View All'}
+                            </button>
+                        )}
+                    </div>
+
+                    <AnimatePresence mode="wait">
+                        {isMyQuizzesGridView ? (
+                            <motion.div
+                                key="my-quizzes-grid"
+                                initial={{ opacity: 0, x: 100 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 300,
+                                    damping: 30
+                                }}
+                                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                            >
+                                {myQuizzes.map((quiz) => (
+                                    <QuizCard key={quiz._id} quiz={quiz} isCarousel={false} />
+                                ))}
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="my-quizzes-carousel"
+                                initial={{ opacity: 0, x: -100 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 300,
+                                    damping: 30
+                                }}
+                            >
+                                <div className="relative h-[220px]">
+                                    <div
+                                        id="my-quizzes-carousel"
+                                        className="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide absolute inset-0"
+                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                    >
+                                        {myQuizzes.length > 0 ? (
+                                            myQuizzes.map((quiz) => (
+                                                <QuizCard key={quiz._id} quiz={quiz} isCarousel={true} />
+                                            ))
+                                        ) : (
+                                            <button
+                                                onClick={() => setIsCreateModalOpen(true)}
+                                                className="min-w-[280px] w-[280px] h-[200px] bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors flex flex-col items-center justify-center gap-3 group"
+                                            >
+                                                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
+                                                    <PlusIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                                                </div>
+                                                <div className="text-center">
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Create Your First Quiz</h3>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Start sharing your knowledge</p>
+                                                </div>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            )}
+
+            {/* Global Quizzes Section */}
+            {filteredQuizzes.length > 0 && !isMyQuizzesGridView && (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-black">
+                            {session?.user?.id ? 'Global Quizzes' : 'All Quizzes'}
+                        </h2>
+                        <button
+                            onClick={handleGlobalViewToggle}
                             className="flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
                         >
-                            <PlusIcon className="w-4 h-4" />
-                            <span>Create</span>
-                        </Link>
+                            {isGlobalGridView ? 'Show Carousel' : 'View All'}
+                        </button>
                     </div>
-                    <div className="relative h-[240px]">
-                        <div
-                            id="my-quizzes-carousel"
-                            className="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide absolute inset-0"
-                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                        >
-                            {myQuizzes.map((quiz) => (
-                                <QuizCard key={quiz._id} quiz={quiz} />
-                            ))}
-                        </div>
-                    </div>
+
+                    <AnimatePresence mode="wait">
+                        {isGlobalGridView ? (
+                            <motion.div
+                                key="global-grid"
+                                initial={{ opacity: 0, x: 100 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 300,
+                                    damping: 30
+                                }}
+                                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                            >
+                                {filteredQuizzes.map((quiz) => (
+                                    <QuizCard key={quiz._id} quiz={quiz} isCarousel={false} />
+                                ))}
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="global-carousel"
+                                initial={{ opacity: 0, x: -100 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 300,
+                                    damping: 30
+                                }}
+                            >
+                                {session?.user?.id ? (
+                                    <div className="relative h-[220px]">
+                                        <div
+                                            id="global-quizzes-carousel"
+                                            className="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide absolute inset-0"
+                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                        >
+                                            {otherQuizzes.map((quiz) => (
+                                                <QuizCard key={quiz._id} quiz={quiz} isCarousel={true} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                        {filteredQuizzes.map((quiz) => (
+                                            <QuizCard key={quiz._id} quiz={quiz} isCarousel={false} />
+                                        ))}
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             )}
 
-            {/* Global Quizzes Carousel */}
-            {otherQuizzes.length > 0 && (
-                <div className="space-y-4">
-                    <h2 className="text-xl font-bold text-black">
-                        Global Quizes
-                    </h2>
-                    <div className="relative h-[240px]">
-                        <div
-                            id="global-quizzes-carousel"
-                            className="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide absolute inset-0"
-                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                        >
-                            {otherQuizzes.map((quiz) => (
-                                <QuizCard key={quiz._id} quiz={quiz} />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {filteredQuizzes.length === 0 && (
+            {filteredQuizzes.length === 0 && !session?.user?.id && (
                 <div className="text-center p-4 text-gray-600 dark:text-gray-400">
-                    {searchQuery ? 'No quizzes found matching your search.' : 'No quizzes available. Create your first quiz!'}
+                    No quizzes available.
                 </div>
             )}
+
+            <CreateQuizModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onQuizCreated={handleQuizCreated}
+            />
         </div>
     );
 } 

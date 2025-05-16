@@ -50,7 +50,6 @@ export async function updateUserStats(email: string, stats: Partial<UserStats>) 
     const client = await clientPromise;
     const db = client.db();
 
-    // Get current user stats to ensure we have all required fields
     const user = await getUserByEmail(email);
     if (!user) return null;
 
@@ -71,7 +70,6 @@ export async function updateUserStats(email: string, stats: Partial<UserStats>) 
         }
     }
 
-    // Merge current stats with updates to ensure all required fields are present
     const updatedStats: UserStats = {
         totalQuizzesCreated: stats.totalQuizzesCreated ?? user.stats.totalQuizzesCreated,
         totalQuizzesAttempted: stats.totalQuizzesAttempted ?? user.stats.totalQuizzesAttempted,
@@ -90,7 +88,6 @@ export async function updateUserStats(email: string, stats: Partial<UserStats>) 
     );
 }
 
-// New function to increment quiz creation count
 export async function incrementQuizzesCreated(email: string) {
     const client = await clientPromise;
     const db = client.db();
@@ -104,7 +101,6 @@ export async function incrementQuizzesCreated(email: string) {
     );
 }
 
-// New function to increment unique quizzes attempted
 export async function incrementQuizzesAttempted(email: string) {
     const client = await clientPromise;
     const db = client.db();

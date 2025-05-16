@@ -14,8 +14,7 @@ const aiService = new AIService();
 const CreateQuizRequestSchema = z.object({
     prompt: z.string().min(1, "Prompt is required"),
     difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
-    numQuestions: z.number().min(1).max(20).default(5),
-    additionalContext: z.string().optional()
+    numQuestions: z.number().min(1).max(20).default(5)
 });
 
 export async function POST(request: Request) {
@@ -29,7 +28,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { prompt, difficulty, numQuestions, additionalContext } = CreateQuizRequestSchema.parse(body);
+        const { prompt, difficulty, numQuestions } = CreateQuizRequestSchema.parse(body);
 
         // Connect to database first to get user
         await connectDB();
@@ -44,15 +43,11 @@ export async function POST(request: Request) {
         const quizRequest: QuizRequest = {
             topic: prompt,
             difficulty,
-            numQuestions,
-            additionalContext
+            numQuestions
         };
 
-        // Generate quiz using AI
         const generatedQuiz = await aiService.generateQuiz(quizRequest);
-        console.log('Generated quiz:', JSON.stringify(generatedQuiz, null, 2));
 
-        // Download and store the image
         const imageResponse = await fetch(generatedQuiz.imageUrl);
         if (!imageResponse.ok) {
             throw new Error('Failed to fetch quiz image');
@@ -60,7 +55,6 @@ export async function POST(request: Request) {
         const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
         const imageId = await uploadImage(imageBuffer, `quiz-${Date.now()}.jpg`);
 
-        // Prepare quiz data with all required fields
         const quizData = {
             title: generatedQuiz.topic,
             description: `A ${difficulty} difficulty quiz about ${generatedQuiz.topic}`,
@@ -78,10 +72,9 @@ export async function POST(request: Request) {
                 modelUsed: generatedQuiz.metadata.modelUsed,
                 seed: generatedQuiz.metadata.seed
             },
-            imageId: imageId  // Store the GridFS image ID instead of URL
+            imageId: imageId
         };
 
-        // Save quiz to database using the createQuiz function
         const quizId = await createQuiz(quizData);
         const savedQuiz = await Quiz.findById(quizId);
 
@@ -89,7 +82,6 @@ export async function POST(request: Request) {
             throw new Error('Failed to retrieve created quiz');
         }
 
-        // Return the quiz ID for redirection
         return NextResponse.json({
             success: true,
             quizId: savedQuiz._id.toString()

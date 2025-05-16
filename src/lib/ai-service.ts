@@ -5,7 +5,6 @@ export interface QuizRequest {
     topic: string;
     difficulty?: 'easy' | 'medium' | 'hard';
     numQuestions?: number;
-    additionalContext?: string;
 }
 
 export interface QuizQuestion {
@@ -75,7 +74,6 @@ export class AIService {
                     stack: error.stack
                 });
             }
-            // Return a default image URL if image generation fails
             return 'https://placehold.co/512x512/e2e8f0/1e293b?text=Quiz+Image';
         }
     }
@@ -86,7 +84,6 @@ export class AIService {
         const numQuestions = request.numQuestions || 5;
 
         const prompt = `Generate a ${difficulty} difficulty quiz about ${request.topic} with ${numQuestions} questions.
-${request.additionalContext ? `Additional context: ${request.additionalContext}\n` : ''}
 Random seed for variety: ${seed}
 
 For each question, provide:

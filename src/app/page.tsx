@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import QuizList from './components/QuizList';
-import CreateQuizButton from '../components/CreateQuizButton';
 import Navbar from './components/Navbar';
 import SearchBar from './components/SearchBar';
 import Sidebar from './components/Sidebar';
@@ -18,11 +17,10 @@ function MainContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-black flex">
+    <div className="min-h-screen bg-offwhite flex">
       <Sidebar />
       <div
-        className={`flex-1 transition-[margin] duration-300 ease-in-out ${isCollapsed ? 'ml-[60px]' : 'ml-[240px]'
-          }`}
+        className={`flex-1 transition-[margin] duration-300 ease-in-out ${isCollapsed ? 'ml-[60px]' : 'ml-[240px]'}`}
       >
         <div className="h-full flex flex-col">
           <Navbar />
@@ -34,7 +32,6 @@ function MainContent() {
               <QuizList searchQuery={searchQuery} />
             </div>
           </div>
-          <CreateQuizButton />
         </div>
       </div>
     </div>

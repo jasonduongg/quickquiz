@@ -2,20 +2,13 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import connectDB from '@/lib/db';
-import { Quiz, getQuizStats, getUserQuizStats, QuizStats } from '@/lib/models/quiz';
+import { Quiz, getQuizStats, getUserQuizStats, QuizStats, IQuiz } from '@/lib/models/quiz';
 import { getUserByEmail } from '@/lib/models/user';
 import { ObjectId } from 'mongodb';
 
 export async function GET(request: Request) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session?.user?.email) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
         await connectDB();
 
         const { searchParams } = new URL(request.url);
@@ -34,7 +27,7 @@ export async function GET(request: Request) {
             let stats: QuizStats | null = null;
             if (includeStats) {
                 stats = await getQuizStats(quizId);
-                if (session.user.id) {
+                if (session?.user?.id) {
                     stats.userAttempts = await getUserQuizStats(quizId, session.user.id);
                 }
             }
@@ -46,15 +39,15 @@ export async function GET(request: Request) {
         }
 
         // Get all quizzes
-        const quizzes = await Quiz.find({})
+        const quizzes = (await Quiz.find({})
             .sort({ createdAt: -1 })
-            .lean();
+            .lean()) as unknown as IQuiz[];
 
         if (includeStats) {
             const quizzesWithStats = await Promise.all(
                 quizzes.map(async (quiz) => {
                     const stats = await getQuizStats(quiz._id.toString());
-                    if (session.user.id) {
+                    if (session?.user?.id) {
                         stats.userAttempts = await getUserQuizStats(quiz._id.toString(), session.user.id);
                     }
                     return { quiz, stats };

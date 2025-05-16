@@ -1,6 +1,6 @@
 import NextAuth, { DefaultSession, NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import { createUser, getUserByEmail, User, UserStats } from '@/lib/models/user';
+import { createUser, getUserByEmail, UserStats } from '@/lib/models/user';
 import { ObjectId } from 'mongodb';
 
 declare module 'next-auth' {
@@ -27,7 +27,6 @@ export const authOptions: NextAuthOptions = {
                 const existingUser = await getUserByEmail(user.email);
 
                 if (!existingUser) {
-                    // Create new user if doesn't exist
                     await createUser({
                         email: user.email,
                         name: user.name || '',
