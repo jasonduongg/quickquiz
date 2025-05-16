@@ -3,6 +3,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useSession } from 'next-auth/react';
+import { EyeIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 interface QuizQuestion {
     id: number;
@@ -10,25 +12,34 @@ interface QuizQuestion {
     options: string[];
 }
 
-interface QuizAttempt {
-    score: number;
-    totalQuestions: number;
-    gradedAt: string;
+interface QuizStats {
+    totalAttempts: number;
+    averageScore: number;
+    uniqueUsers: number;
+    userAttempts: {
+        attempts: number;
+        averageScore: number;
+        bestScore: number;
+        lastAttempt: Date;
+    } | null;
 }
 
 interface Quiz {
-    quizId: string;
-    topic: string;
+    _id: string;
+    title: string;
+    description: string;
     questions: QuizQuestion[];
     createdAt: string;
-    attempts: QuizAttempt[];
-    imageUrl: string;
+    updatedAt: string;
+    createdBy: string;
     metadata: {
         difficulty: string;
         generatedAt: string;
         modelUsed: string;
         seed: number;
     };
+    imageId: string;
+    stats?: QuizStats;
 }
 
 interface QuizListProps {
@@ -36,19 +47,26 @@ interface QuizListProps {
 }
 
 export default function QuizList({ searchQuery = '' }: QuizListProps) {
+    const { data: session } = useSession();
     const [quizzes, setQuizzes] = useState<Quiz[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [deletingQuizId, setDeletingQuizId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchQuizzes = async () => {
             try {
-                const response = await fetch('/api/quizzes');
+                const response = await fetch('/api/quizzes?includeStats=true');
                 if (!response.ok) {
                     throw new Error('Failed to fetch quizzes');
                 }
                 const data = await response.json();
-                setQuizzes(data);
+                // Transform the data to match our Quiz interface
+                const transformedQuizzes = data.map((item: { quiz: Quiz, stats: QuizStats }) => ({
+                    ...item.quiz,
+                    stats: item.stats
+                }));
+                setQuizzes(transformedQuizzes);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An error occurred');
             } finally {
@@ -64,9 +82,45 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
 
         const query = searchQuery.toLowerCase().trim();
         return quizzes.filter(quiz =>
-            quiz.topic.toLowerCase().includes(query)
+            quiz.title.toLowerCase().includes(query) ||
+            quiz.description.toLowerCase().includes(query)
         );
     }, [quizzes, searchQuery]);
+
+    const myQuizzes = useMemo(() => {
+        if (!session?.user?.id) return [];
+        return filteredQuizzes.filter(quiz => quiz.createdBy === session.user.id);
+    }, [filteredQuizzes, session?.user?.id]);
+
+    const otherQuizzes = useMemo(() => {
+        if (!session?.user?.id) return filteredQuizzes;
+        return filteredQuizzes.filter(quiz => quiz.createdBy !== session?.user?.id);
+    }, [filteredQuizzes, session?.user?.id]);
+
+    const handleDeleteQuiz = async (quizId: string) => {
+        if (!confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            setDeletingQuizId(quizId);
+            const response = await fetch(`/api/quizzes/${quizId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to delete quiz');
+            }
+
+            // Remove the deleted quiz from the state
+            setQuizzes(quizzes.filter(quiz => quiz._id !== quizId));
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to delete quiz');
+        } finally {
+            setDeletingQuizId(null);
+        }
+    };
 
     if (loading) {
         return (
@@ -84,20 +138,12 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
         );
     }
 
-    if (filteredQuizzes.length === 0) {
+    const QuizCard = ({ quiz }: { quiz: Quiz }) => {
         return (
-            <div className="text-center p-4 text-gray-600 dark:text-gray-400">
-                {searchQuery ? 'No quizzes found matching your search.' : 'No quizzes available. Create your first quiz!'}
-            </div>
-        );
-    }
-
-    return (
-        <div className="grid gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {filteredQuizzes.map((quiz) => (
-                <div key={quiz.quizId} className="flex flex-col">
+            <div className="flex flex-col min-w-[280px] w-[280px]">
+                <div className="relative">
                     <Link
-                        href={`/quiz/${quiz.quizId}`}
+                        href={`/quiz/${quiz._id}`}
                         className="block h-[200px] rounded-lg overflow-hidden"
                     >
                         <div className="w-full h-full perspective-1000">
@@ -106,7 +152,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                 initial={false}
                                 whileHover={{ rotateY: 180 }}
                                 transition={{
-                                    duration: 0.8,
+                                    duration: 1,
                                     type: "spring",
                                     stiffness: 50,
                                     damping: 15
@@ -125,56 +171,140 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                     }}
                                 >
                                     <img
-                                        src={quiz.imageUrl}
-                                        alt={`Quiz about ${quiz.topic}`}
-                                        className="w-full h-full object-cover rounded-lg"
-                                    />
+                                        src={`/api/images/${quiz.imageId}`}
+                                        alt={`Quiz about ${quiz.title}`}
+                                        className="w-full h-full object-cover rounded-lg" />
                                 </motion.div>
 
                                 {/* Back - Stats */}
                                 <motion.div
-                                    className="absolute w-full h-full bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm cursor-pointer"
+                                    className="absolute w-full h-full bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm cursor-pointer"
                                     style={{
                                         backfaceVisibility: "hidden",
                                         WebkitBackfaceVisibility: "hidden",
                                         rotateY: 180
                                     }}
                                 >
-                                    <div className="h-full flex flex-col justify-center items-center text-center space-y-3">
+                                    <div className="h-full flex flex-col justify-between relative">
+                                        {session?.user?.id === quiz.createdBy && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleDeleteQuiz(quiz._id);
+                                                }}
+                                                disabled={deletingQuizId === quiz._id}
+                                                className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                title="Delete quiz"
+                                            >
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        )}
+
                                         <div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Questions</p>
+                                            <p className="text-xs font-bold text-gray-900 dark:text-white mb-1">Global Attempts: {quiz.stats?.totalAttempts ?? 0}</p>
+                                        </div>
+
+                                        {session && (
+                                            <div>
+                                                <p className="text-xs font-bold text-gray-900 dark:text-white mb-1">Your Attempts: {quiz.stats?.userAttempts?.attempts ?? 0}</p>
+                                                <div className="space-y-1">
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {quiz.stats?.userAttempts ?
+                                                            `Best: ${Math.round((quiz.stats.userAttempts.bestScore * quiz.questions.length) / 100)}/${quiz.questions.length} correct`
+                                                            : 'No Score yet'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {quiz.stats?.userAttempts ?
+                                                            `Average: ${Math.round((quiz.stats.userAttempts.averageScore * quiz.questions.length) / 100)}/${quiz.questions.length} correct`
+                                                            : ''}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-900 dark:text-white mb-1">Questions</p>
                                             <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                                                {quiz.questions.length}
+                                                Total: {quiz.questions.length}
                                             </p>
                                         </div>
-                                        {quiz.attempts && quiz.attempts.length > 0 ? (
-                                            <div>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Attempts</p>
-                                                <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                                                    {quiz.attempts.length}
-                                                </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                    Best: {Math.max(...quiz.attempts.map(a => a.score))} / {quiz.questions.length}
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-                                                Not attempted yet
-                                            </p>
-                                        )}
                                     </div>
                                 </motion.div>
                             </motion.div>
                         </div>
                     </Link>
-                    {/* Fixed title section - not clickable */}
-                    <div className="h-10 flex items-center">
-                        <h2 className="text-med font-semibold text-gray-900 dark:text-white">
-                            {quiz.topic}
+                </div>
+
+                <div className="mt-1 px-1 min-h-[2rem]">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-med font-bold text-black">
+                            {quiz.title}
                         </h2>
+                        <div className="flex items-center gap-1 text-gray-500">
+                            <EyeIcon className="w-4 h-4" />
+                            <span className="text-xs">{quiz.stats?.totalAttempts ?? 0}</span>
+                        </div>
                     </div>
                 </div>
-            ))}
+            </div>
+        );
+    };
+
+    return (
+        <div className="space-y-2">
+            {/* My Quizzes Carousel */}
+            {session?.user?.id && myQuizzes.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-xl font-bold text-black">My Quizzes</h2>
+                        <Link
+                            href="/create"
+                            className="flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
+                        >
+                            <PlusIcon className="w-4 h-4" />
+                            <span>Create</span>
+                        </Link>
+                    </div>
+                    <div className="relative h-[240px]">
+                        <div
+                            id="my-quizzes-carousel"
+                            className="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide absolute inset-0"
+                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                        >
+                            {myQuizzes.map((quiz) => (
+                                <QuizCard key={quiz._id} quiz={quiz} />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Global Quizzes Carousel */}
+            {otherQuizzes.length > 0 && (
+                <div className="space-y-4">
+                    <h2 className="text-xl font-bold text-black">
+                        Global Quizes
+                    </h2>
+                    <div className="relative h-[240px]">
+                        <div
+                            id="global-quizzes-carousel"
+                            className="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide absolute inset-0"
+                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                        >
+                            {otherQuizzes.map((quiz) => (
+                                <QuizCard key={quiz._id} quiz={quiz} />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {filteredQuizzes.length === 0 && (
+                <div className="text-center p-4 text-gray-600 dark:text-gray-400">
+                    {searchQuery ? 'No quizzes found matching your search.' : 'No quizzes available. Create your first quiz!'}
+                </div>
+            )}
         </div>
     );
 } 

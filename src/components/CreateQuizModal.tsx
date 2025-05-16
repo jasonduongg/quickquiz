@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface CreateQuizModalProps {
     isOpen: boolean;
@@ -9,6 +10,7 @@ interface CreateQuizModalProps {
 }
 
 export default function CreateQuizModal({ isOpen, onClose, onQuizCreated }: CreateQuizModalProps) {
+    const router = useRouter();
     const [prompt, setPrompt] = useState('');
     const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
     const [numQuestions, setNumQuestions] = useState(5);
@@ -44,8 +46,8 @@ export default function CreateQuizModal({ isOpen, onClose, onQuizCreated }: Crea
             const data = await response.json();
             onQuizCreated();
             onClose();
-            // Redirect to the new quiz
-            window.location.href = `/quiz/${data.quizId}`;
+            // Use Next.js router for navigation
+            router.push(`/quiz/${data.quizId}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {

@@ -6,14 +6,19 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:attempts": "ts-node -r tsconfig-paths/register src/scripts/migrateAttempts.ts"
   },
   "dependencies": {
+    "@auth/mongodb-adapter": "^3.9.1",
+    "@heroicons/react": "^2.2.0",
     "@types/mongoose": "^5.11.96",
     "@types/uuid": "^10.0.0",
     "framer-motion": "^12.11.4",
+    "mongodb": "^6.16.0",
     "mongoose": "^8.14.3",
     "next": "15.3.2",
+    "next-auth": "^4.24.11",
     "openai": "^4.98.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

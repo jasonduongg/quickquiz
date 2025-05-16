@@ -2,26 +2,31 @@
 
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
+import { ObjectId } from 'mongodb';
 
 interface QuizQuestion {
     id: number;
     text: string;
     options: string[];
-}
-
-interface QuizAttempt {
-    score: number;
-    totalQuestions: number;
-    answers: Record<string, string>;
-    gradedAt: string;
+    correctAnswer: string;
+    explanation?: string;
 }
 
 interface Quiz {
-    quizId: string;
-    topic: string;
+    _id: string;
+    title: string;
+    description: string;
     questions: QuizQuestion[];
+    createdBy: string;
     createdAt: string;
-    attempts: QuizAttempt[];
+    updatedAt: string;
+    metadata: {
+        difficulty: string;
+        generatedAt: string;
+        modelUsed: string;
+        seed: number;
+    };
+    imageUrl: string;
 }
 
 export default function QuizPage({ params }: { params: Promise<{ quizId: string }> }) {
@@ -31,7 +36,7 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
     const [error, setError] = useState<string | null>(null);
     const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
     const [isSubmitted, setIsSubmitted] = useState(false);
-    const [currentAttempt, setCurrentAttempt] = useState<{ correct: number; total: number; attemptId: number } | null>(null);
+    const [currentAttempt, setCurrentAttempt] = useState<{ correct: number; total: number; attemptId: string } | null>(null);
 
     useEffect(() => {
         const fetchQuiz = async () => {
@@ -69,7 +74,7 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    quizId: quiz.quizId,
+                    quizId: quiz._id,
                     answers: selectedAnswers
                 }),
             });
@@ -81,13 +86,6 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
             const result = await response.json();
             setCurrentAttempt(result);
             setIsSubmitted(true);
-
-            // Refresh the quiz to get updated attempts
-            const quizResponse = await fetch(`/api/quizzes/${quizId}`);
-            if (quizResponse.ok) {
-                const updatedQuiz = await quizResponse.json();
-                setQuiz(updatedQuiz);
-            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
         }
@@ -117,104 +115,65 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
         );
     }
 
-    const bestScore = quiz.attempts.length > 0
-        ? Math.max(...quiz.attempts.map(a => a.score))
-        : 0;
-
     return (
-        <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto p-4">
             <div className="mb-8">
-                <Link
-                    href="/"
-                    className="text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block"
-                >
-                    ← Back to Quizzes
-                </Link>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mt-4">
-                    {quiz.topic}
-                </h1>
-                <div className="mt-4 space-y-4">
-                    {currentAttempt && (
-                        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                            <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">
-                                Current Score: {currentAttempt.correct} out of {currentAttempt.total} correct
-                            </p>
-                        </div>
-                    )}
-                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                            Quiz History
-                        </h2>
-                        {quiz.attempts.length > 0 ? (
-                            <div className="space-y-2">
-                                <p className="text-gray-700 dark:text-gray-300">
-                                    Best Score: {bestScore} / {quiz.questions.length}
-                                </p>
-                                <p className="text-gray-700 dark:text-gray-300">
-                                    Total Attempts: {quiz.attempts.length}
-                                </p>
-                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                    <p>Last attempt: {new Date(quiz.attempts[quiz.attempts.length - 1].gradedAt).toLocaleString()}</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <p className="text-gray-500 dark:text-gray-400 italic">
-                                Not attempted yet
-                            </p>
-                        )}
-                    </div>
+                <h1 className="text-3xl font-bold mb-2">{quiz.title}</h1>
+                <p className="text-gray-600 dark:text-gray-400">{quiz.description}</p>
+                <div className="mt-2 text-sm text-gray-500">
+                    <span className="mr-4">Difficulty: {quiz.metadata.difficulty}</span>
+                    <span>Created: {new Date(quiz.createdAt).toLocaleDateString()}</span>
                 </div>
             </div>
 
-            <div className="space-y-8">
-                {quiz.questions.map((question) => (
-                    <div
-                        key={question.id}
-                        className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6"
-                    >
-                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                            {question.id}. {question.text}
-                        </h2>
-                        <div className="space-y-3">
-                            {question.options.map((option, index) => (
-                                <label
-                                    key={index}
-                                    className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${selectedAnswers[question.id] === option
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                                        : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                                        }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name={`question-${question.id}`}
-                                        value={option}
-                                        checked={selectedAnswers[question.id] === option}
-                                        onChange={() => handleAnswerSelect(question.id, option)}
-                                        disabled={isSubmitted}
-                                        className="mr-3"
-                                    />
-                                    <span className="text-gray-900 dark:text-white">
-                                        {option}
-                                    </span>
-                                </label>
-                            ))}
+            {!isSubmitted ? (
+                <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-8">
+                    {quiz.questions.map((question, index) => (
+                        <div key={question.id} className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                            <h3 className="text-lg font-medium mb-4">
+                                {index + 1}. {question.text}
+                            </h3>
+                            <div className="space-y-3">
+                                {question.options.map((option, optionIndex) => (
+                                    <label key={optionIndex} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name={`question-${question.id}`}
+                                            value={optionIndex.toString()}
+                                            checked={selectedAnswers[question.id] === optionIndex.toString()}
+                                            onChange={() => handleAnswerSelect(question.id, optionIndex.toString())}
+                                            className="h-4 w-4 text-blue-600"
+                                        />
+                                        <span>{option}</span>
+                                    </label>
+                                ))}
+                            </div>
                         </div>
+                    ))}
+                    <div className="flex justify-end">
+                        <button
+                            type="submit"
+                            disabled={Object.keys(selectedAnswers).length !== quiz.questions.length}
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Submit Quiz
+                        </button>
                     </div>
-                ))}
-            </div>
-
-            {!isSubmitted && (
-                <div className="mt-8 flex justify-center">
-                    <button
-                        onClick={handleSubmit}
-                        disabled={Object.keys(selectedAnswers).length !== quiz.questions.length}
-                        className={`px-6 py-3 rounded-lg font-semibold text-white ${Object.keys(selectedAnswers).length === quiz.questions.length
-                            ? 'bg-blue-600 hover:bg-blue-700'
-                            : 'bg-gray-400 cursor-not-allowed'
-                            }`}
-                    >
-                        Submit Quiz
-                    </button>
+                </form>
+            ) : (
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                    <h2 className="text-2xl font-bold mb-4">Quiz Results</h2>
+                    <p className="text-lg mb-4">
+                        You scored {currentAttempt?.correct} out of {currentAttempt?.total} questions correctly.
+                    </p>
+                    <div className="mt-6">
+                        <Link
+                            href="/"
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                            ← Back to Quizzes
+                        </Link>
+                    </div>
                 </div>
             )}
         </div>

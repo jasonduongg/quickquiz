@@ -5,26 +5,46 @@ import QuizList from './components/QuizList';
 import CreateQuizButton from '../components/CreateQuizButton';
 import Navbar from './components/Navbar';
 import SearchBar from './components/SearchBar';
+import Sidebar from './components/Sidebar';
+import { useSidebar } from './contexts/SidebarContext';
+import { SidebarProvider } from './contexts/SidebarContext';
 
-export default function Home() {
+function MainContent() {
   const [searchQuery, setSearchQuery] = useState('');
+  const { isCollapsed } = useSidebar();
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
   };
 
   return (
-    <div className="min-h-screen bg-black">
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-6">
-          <SearchBar onSearch={handleSearch} />
-        </div>
-        <div className="py-6">
-          <QuizList searchQuery={searchQuery} />
+    <div className="min-h-screen bg-white text-black flex">
+      <Sidebar />
+      <div
+        className={`flex-1 transition-[margin] duration-300 ease-in-out ${isCollapsed ? 'ml-[60px]' : 'ml-[240px]'
+          }`}
+      >
+        <div className="h-full flex flex-col">
+          <Navbar />
+          <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+            <div className="py-6">
+              <SearchBar onSearch={handleSearch} />
+            </div>
+            <div className="py-6">
+              <QuizList searchQuery={searchQuery} />
+            </div>
+          </div>
+          <CreateQuizButton />
         </div>
       </div>
-      <CreateQuizButton />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <SidebarProvider>
+      <MainContent />
+    </SidebarProvider>
   );
 }

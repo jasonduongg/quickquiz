@@ -1,26 +1,50 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { AIService, QuizRequest } from '@/lib/ai-service';
 import connectDB from '@/lib/db';
-import { Quiz } from '@/models/Quiz';
+import { Quiz, createQuiz } from '@/lib/models/quiz';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { ObjectId } from 'mongodb';
+import { z } from 'zod';
+import { getUserByEmail } from '@/lib/models/user';
+import { uploadImage } from '@/lib/db/gridfs';
 
 const aiService = new AIService();
 
+const CreateQuizRequestSchema = z.object({
+    prompt: z.string().min(1, "Prompt is required"),
+    difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
+    numQuestions: z.number().min(1).max(20).default(5),
+    additionalContext: z.string().optional()
+});
+
 export async function POST(request: Request) {
     try {
-        const body = await request.json();
-        const { prompt, difficulty, numQuestions, additionalContext } = body;
-
-        if (!prompt) {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
             return NextResponse.json(
-                { error: 'Prompt is required' },
-                { status: 400 }
+                { error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
+
+        const body = await request.json();
+        const { prompt, difficulty, numQuestions, additionalContext } = CreateQuizRequestSchema.parse(body);
+
+        // Connect to database first to get user
+        await connectDB();
+        const user = await getUserByEmail(session.user.email);
+        if (!user) {
+            return NextResponse.json(
+                { error: 'User not found' },
+                { status: 404 }
             );
         }
 
         const quizRequest: QuizRequest = {
             topic: prompt,
-            difficulty: difficulty || 'medium',
-            numQuestions: numQuestions || 5,
+            difficulty,
+            numQuestions,
             additionalContext
         };
 
@@ -28,25 +52,57 @@ export async function POST(request: Request) {
         const generatedQuiz = await aiService.generateQuiz(quizRequest);
         console.log('Generated quiz:', JSON.stringify(generatedQuiz, null, 2));
 
-        // Connect to database
-        await connectDB();
+        // Download and store the image
+        const imageResponse = await fetch(generatedQuiz.imageUrl);
+        if (!imageResponse.ok) {
+            throw new Error('Failed to fetch quiz image');
+        }
+        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        const imageId = await uploadImage(imageBuffer, `quiz-${Date.now()}.jpg`);
 
-        // Save quiz to database
-        const quiz = new Quiz({
-            ...generatedQuiz,
-            createdAt: new Date().toISOString(),
-            attempts: []
+        // Prepare quiz data with all required fields
+        const quizData = {
+            title: generatedQuiz.topic,
+            description: `A ${difficulty} difficulty quiz about ${generatedQuiz.topic}`,
+            questions: generatedQuiz.questions.map((q, index) => ({
+                id: index + 1,
+                text: q.text,
+                options: q.options,
+                correctAnswer: q.correctAnswer,
+                explanation: q.explanation
+            })),
+            createdBy: new ObjectId(user._id),
+            metadata: {
+                difficulty: generatedQuiz.metadata.difficulty,
+                generatedAt: generatedQuiz.metadata.generatedAt,
+                modelUsed: generatedQuiz.metadata.modelUsed,
+                seed: generatedQuiz.metadata.seed
+            },
+            imageId: imageId  // Store the GridFS image ID instead of URL
+        };
+
+        // Save quiz to database using the createQuiz function
+        const quizId = await createQuiz(quizData);
+        const savedQuiz = await Quiz.findById(quizId);
+
+        if (!savedQuiz) {
+            throw new Error('Failed to retrieve created quiz');
+        }
+
+        // Return the quiz ID for redirection
+        return NextResponse.json({
+            success: true,
+            quizId: savedQuiz._id.toString()
         });
-        console.log('Quiz to save:', JSON.stringify(quiz.toObject(), null, 2));
-
-        await quiz.save();
-        console.log('Saved quiz:', JSON.stringify(quiz.toObject(), null, 2));
-
-        // Return the saved quiz
-        return NextResponse.json(quiz);
 
     } catch (error) {
         console.error('Error creating quiz:', error);
+        if (error instanceof z.ZodError) {
+            return NextResponse.json(
+                { error: error.errors[0].message },
+                { status: 400 }
+            );
+        }
         return NextResponse.json(
             { error: 'Failed to create quiz' },
             { status: 500 }
