@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
-import { EyeIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, TrashIcon, PlusIcon, UserIcon } from '@heroicons/react/24/outline';
 
 interface QuizQuestion {
     id: number;
@@ -194,40 +194,56 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                                     handleDeleteQuiz(quiz._id);
                                                 }}
                                                 disabled={deletingQuizId === quiz._id}
-                                                className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="absolute -top-1 -right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                 title="Delete quiz"
                                             >
-                                                <TrashIcon className="w-4 h-4" />
+                                                <TrashIcon className="w-3.5 h-3.5" />
                                             </button>
                                         )}
 
-                                        <div>
-                                            <p className="text-xs font-bold text-gray-900 dark:text-white mb-1">Global Attempts: {quiz.stats?.totalAttempts ?? 0}</p>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center">
+                                                <span className="text-xs font-bold text-gray-900 dark:text-white">Global Attempts:</span>
+                                                <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{quiz.stats?.totalAttempts ?? 0}</span>
+                                            </div>
+
+                                            {session && (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center">
+                                                        <span className="text-xs font-bold text-gray-900 dark:text-white">Your Attempts:</span>
+                                                        <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{quiz.stats?.userAttempts?.attempts ?? 0}</span>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs text-gray-600 dark:text-gray-300">
+                                                            {quiz.stats?.userAttempts ?
+                                                                `Best: ${Math.round((quiz.stats.userAttempts.bestScore * quiz.questions.length) / 100)}/${quiz.questions.length} correct`
+                                                                : 'No Score yet'}
+                                                        </p>
+                                                        <p className="text-xs text-gray-600 dark:text-gray-300">
+                                                            {quiz.stats?.userAttempts ?
+                                                                `Average: ${Math.round((quiz.stats.userAttempts.averageScore * quiz.questions.length) / 100)}/${quiz.questions.length} correct`
+                                                                : ''}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {session && (
-                                            <div>
-                                                <p className="text-xs font-bold text-gray-900 dark:text-white mb-1">Your Attempts: {quiz.stats?.userAttempts?.attempts ?? 0}</p>
-                                                <div className="space-y-1">
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {quiz.stats?.userAttempts ?
-                                                            `Best: ${Math.round((quiz.stats.userAttempts.bestScore * quiz.questions.length) / 100)}/${quiz.questions.length} correct`
-                                                            : 'No Score yet'}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {quiz.stats?.userAttempts ?
-                                                            `Average: ${Math.round((quiz.stats.userAttempts.averageScore * quiz.questions.length) / 100)}/${quiz.questions.length} correct`
-                                                            : ''}
-                                                    </p>
-                                                </div>
+                                        {/* Stats below divider */}
+                                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                                            <div className="flex items-center">
+                                                <span className="text-xs font-bold text-gray-900 dark:text-white">Questions:</span>
+                                                <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{quiz.questions.length}</span>
                                             </div>
-                                        )}
-
-                                        <div>
-                                            <p className="text-xs font-bold text-gray-900 dark:text-white mb-1">Questions</p>
-                                            <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                                                Total: {quiz.questions.length}
-                                            </p>
+                                            <div className="flex items-center">
+                                                <span className="text-xs font-bold text-gray-900 dark:text-white">Difficulty:</span>
+                                                <span className={`text-xs capitalize ml-1 ${quiz.metadata.difficulty === 'easy' ? 'text-green-500' :
+                                                    quiz.metadata.difficulty === 'medium' ? 'text-yellow-500' :
+                                                        'text-red-500'
+                                                    }`}>
+                                                    {quiz.metadata.difficulty}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -241,9 +257,15 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                         <h2 className="text-med font-bold text-black">
                             {quiz.title}
                         </h2>
-                        <div className="flex items-center gap-1 text-gray-500">
-                            <EyeIcon className="w-4 h-4" />
-                            <span className="text-xs">{quiz.stats?.totalAttempts ?? 0}</span>
+                        <div className="flex items-center gap-3 text-gray-600">
+                            <div className="flex items-center gap-1">
+                                <UserIcon className="w-4 h-4" />
+                                <span className="text-xs">{quiz.stats?.uniqueUsers ?? 0}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <EyeIcon className="w-4 h-4" />
+                                <span className="text-xs">{quiz.stats?.totalAttempts ?? 0}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -47,7 +47,7 @@ export class AIService {
     private async generateQuizImage(topic: string): Promise<string> {
         try {
             console.log('Generating image for topic:', topic);
-            const prompt = `Create a simple and realistic illustration about ${topic}, designed for educational use in a quiz. The image should be clean and minimal, with a light, friendly color palette. Avoid any text or words. Focus on clarity, simplicity, and fast rendering.`;
+            const prompt = `Create a simple and realistic illustration about ${topic}, designed for educational use in a quiz. The image should be clean and minimal, with a light, friendly color palette. Avoid any text or words or letters, you should not try to generate any fake letters either, stick to objects only. Focus on clarity, simplicity, and fast rendering.`;
 
             console.log('DALL-E prompt:', prompt);
             const response = await this.client.images.generate({
