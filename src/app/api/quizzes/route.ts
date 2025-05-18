@@ -2,63 +2,53 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import connectDB from '@/lib/db';
-import { Quiz, getQuizStats, getUserQuizStats, QuizStats, IQuiz } from '@/lib/models/quiz';
-import { getUserByEmail } from '@/lib/models/user';
+import { Quiz, getQuizStats, getUserQuizStats, QuizStats, IQuiz, getAllQuizzes } from '@/lib/models/quiz';
+import { getUserByEmail, User } from '@/lib/models/user';
 import { ObjectId } from 'mongodb';
 
 export async function GET(request: Request) {
     try {
         const session = await getServerSession(authOptions);
-        await connectDB();
-
         const { searchParams } = new URL(request.url);
-        const quizId = searchParams.get('id');
         const includeStats = searchParams.get('includeStats') === 'true';
 
-        if (quizId) {
-            const quiz = await Quiz.findById(quizId);
-            if (!quiz) {
-                return NextResponse.json(
-                    { error: 'Quiz not found' },
-                    { status: 404 }
-                );
-            }
+        await connectDB();
+        const quizzes = await getAllQuizzes();
 
-            let stats: QuizStats | null = null;
-            if (includeStats) {
-                stats = await getQuizStats(quizId);
-                if (session?.user?.id) {
-                    stats.userAttempts = await getUserQuizStats(quizId, session.user.id);
-                }
+        // Get user's bookmarked quizzes if logged in
+        let bookmarkedQuizzes: string[] = [];
+        if (session?.user?.email) {
+            const user = await getUserByEmail(session.user.email);
+            if (user?.bookmarkedQuizzes) {
+                bookmarkedQuizzes = user.bookmarkedQuizzes.map(id => id.toString());
             }
-
-            return NextResponse.json({
-                quiz,
-                stats
-            });
         }
 
-        // Get all quizzes
-        const quizzes = (await Quiz.find({})
-            .sort({ createdAt: -1 })
-            .lean()) as unknown as IQuiz[];
+        // Get stats for each quiz if requested
+        const quizzesWithStats = await Promise.all(
+            quizzes.map(async (quiz) => {
+                const quizWithStats = {
+                    quiz: {
+                        ...quiz,
+                        _id: quiz._id.toString(),
+                        createdBy: quiz.createdBy.toString(),
+                        isBookmarked: bookmarkedQuizzes.includes(quiz._id.toString())
+                    },
+                    stats: null as QuizStats | null
+                };
 
-        if (includeStats) {
-            const quizzesWithStats = await Promise.all(
-                quizzes.map(async (quiz) => {
+                if (includeStats) {
                     const stats = await getQuizStats(quiz._id.toString());
-                    if (session?.user?.id) {
-                        stats.userAttempts = await getUserQuizStats(quiz._id.toString(), session.user.id);
-                    }
-                    return { quiz, stats };
-                })
-            );
-            return NextResponse.json(quizzesWithStats);
-        }
+                    quizWithStats.stats = stats;
+                }
 
-        return NextResponse.json(quizzes);
+                return quizWithStats;
+            })
+        );
+
+        return NextResponse.json(quizzesWithStats);
     } catch (error) {
-        console.error('Error in GET /api/quizzes:', error);
+        console.error('Error fetching quizzes:', error);
         return NextResponse.json(
             { error: 'Failed to fetch quizzes' },
             { status: 500 }

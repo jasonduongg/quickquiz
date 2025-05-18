@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'PPTelegraf';
+  src: url('/fonts/PPTelegraf-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -32,4 +40,9 @@ body {
 @theme {
   --color-offpurple: #ece3fe;
   --color-offwhite: #f8f9fa;
+}
+
+/* Test class to verify font loading */
+.font-telegraf {
+  font-family: 'PPTelegraf', sans-serif !important;
 }

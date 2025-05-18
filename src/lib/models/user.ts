@@ -14,6 +14,7 @@ export interface User {
     name: string;
     image?: string;
     stats: UserStats;
+    bookmarkedQuizzes?: ObjectId[];
     createdAt: Date;
     updatedAt: Date;
 }

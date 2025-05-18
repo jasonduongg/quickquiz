@@ -4,8 +4,10 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
-import { EyeIcon, TrashIcon, PlusIcon, UserIcon } from '@heroicons/react/24/outline';
-import CreateQuizModal from '@/components/CreateQuizModal';
+import { EyeIcon, TrashIcon, PlusIcon, UserIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
+import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
+import CreateQuizModal from './CreateQuizModal';
+import { QuizCard, CarouselSkeleton, GridSkeleton } from './QuizCard';
 
 interface QuizQuestion {
     id: number;
@@ -41,6 +43,7 @@ interface Quiz {
     };
     imageId: string;
     stats?: QuizStats;
+    isBookmarked?: boolean;
 }
 
 interface QuizListProps {
@@ -56,6 +59,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isGlobalGridView, setIsGlobalGridView] = useState(false);
     const [isMyQuizzesGridView, setIsMyQuizzesGridView] = useState(false);
+    const [bookmarkingQuizId, setBookmarkingQuizId] = useState<string | null>(null);
 
     const fetchQuizzes = async () => {
         try {
@@ -67,7 +71,8 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
 
             const transformedQuizzes = data.map((item: { quiz: Quiz, stats: QuizStats }) => ({
                 ...item.quiz,
-                stats: item.stats
+                stats: item.stats,
+                isBookmarked: item.quiz.isBookmarked || false
             }));
             setQuizzes(transformedQuizzes);
         } catch (err) {
@@ -144,13 +149,30 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-[200px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
-            </div>
-        );
-    }
+    const handleBookmarkToggle = async (quizId: string, currentBookmarkState: boolean) => {
+        if (!session?.user?.id) return;
+
+        try {
+            setBookmarkingQuizId(quizId);
+            const response = await fetch(`/api/quizzes/${quizId}/bookmark`, {
+                method: currentBookmarkState ? 'DELETE' : 'POST',
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update bookmark');
+            }
+
+            setQuizzes(quizzes.map(quiz =>
+                quiz._id === quizId
+                    ? { ...quiz, isBookmarked: !currentBookmarkState }
+                    : quiz
+            ));
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to update bookmark');
+        } finally {
+            setBookmarkingQuizId(null);
+        }
+    };
 
     if (error) {
         return (
@@ -160,141 +182,6 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
         );
     }
 
-    const QuizCard = ({ quiz, isCarousel = false }: { quiz: Quiz, isCarousel?: boolean }) => {
-        return (
-            <div className={`flex flex-col ${isCarousel ? 'min-w-[280px] w-[280px]' : 'w-full'}`}>
-                <div className="relative w-full">
-                    <Link
-                        href={`/quiz/${quiz._id}`}
-                        className={`block ${isCarousel ? 'h-[200px]' : 'aspect-[4/3]'} rounded-lg overflow-hidden`}
-                    >
-                        <div className="w-full h-full perspective-1000">
-                            <motion.div
-                                className="relative w-full h-full"
-                                initial={false}
-                                whileHover={{ rotateY: 180 }}
-                                transition={{
-                                    duration: 1,
-                                    type: "spring",
-                                    stiffness: 50,
-                                    damping: 15
-                                }}
-                                style={{
-                                    transformStyle: "preserve-3d",
-                                    transformOrigin: "center center"
-                                }}
-                            >
-                                {/* Front - Image */}
-                                <motion.div
-                                    className="absolute w-full h-full cursor-pointer"
-                                    style={{
-                                        backfaceVisibility: "hidden",
-                                        WebkitBackfaceVisibility: "hidden"
-                                    }}
-                                >
-                                    <img
-                                        src={`/api/images/${quiz.imageId}`}
-                                        alt={`Quiz about ${quiz.title}`}
-                                        className="w-full h-full object-cover rounded-lg" />
-                                </motion.div>
-
-                                {/* Back - Stats */}
-                                <motion.div
-                                    className="absolute w-full h-full bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm cursor-pointer"
-                                    style={{
-                                        backfaceVisibility: "hidden",
-                                        WebkitBackfaceVisibility: "hidden",
-                                        rotateY: 180
-                                    }}
-                                >
-                                    <div className="h-full flex flex-col justify-between relative">
-                                        {session?.user?.id === quiz.createdBy && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    handleDeleteQuiz(quiz._id);
-                                                }}
-                                                disabled={deletingQuizId === quiz._id}
-                                                className="absolute -top-1 -right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                title="Delete quiz"
-                                            >
-                                                <TrashIcon className="w-3.5 h-3.5" />
-                                            </button>
-                                        )}
-
-                                        <div className="space-y-2">
-                                            <div className="flex items-center">
-                                                <span className="text-xs font-bold text-gray-900 dark:text-white">Global Attempts:</span>
-                                                <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{quiz.stats?.totalAttempts ?? 0}</span>
-                                            </div>
-
-                                            {session && (
-                                                <div className="space-y-2">
-                                                    <div className="flex items-center">
-                                                        <span className="text-xs font-bold text-gray-900 dark:text-white">Your Attempts:</span>
-                                                        <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{quiz.stats?.userAttempts?.attempts ?? 0}</span>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <p className="text-xs text-gray-600 dark:text-gray-300">
-                                                            {quiz.stats?.userAttempts ?
-                                                                `Best: ${Math.round((quiz.stats.userAttempts.bestScore * quiz.questions.length) / 100)}/${quiz.questions.length} correct`
-                                                                : 'No Score yet'}
-                                                        </p>
-                                                        <p className="text-xs text-gray-600 dark:text-gray-300">
-                                                            {quiz.stats?.userAttempts ?
-                                                                `Average: ${Math.round((quiz.stats.userAttempts.averageScore * quiz.questions.length) / 100)}/${quiz.questions.length} correct`
-                                                                : ''}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Stats below divider */}
-                                        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 space-y-1">
-                                            <div className="flex items-center">
-                                                <span className="text-xs font-bold text-gray-900 dark:text-white">Questions:</span>
-                                                <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{quiz.questions.length}</span>
-                                            </div>
-                                            <div className="flex items-center">
-                                                <span className="text-xs font-bold text-gray-900 dark:text-white">Difficulty:</span>
-                                                <span className={`text-xs capitalize ml-1 ${quiz.metadata.difficulty === 'easy' ? 'text-green-500' :
-                                                    quiz.metadata.difficulty === 'medium' ? 'text-yellow-500' :
-                                                        'text-red-500'
-                                                    }`}>
-                                                    {quiz.metadata.difficulty}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            </motion.div>
-                        </div>
-                    </Link>
-                </div>
-
-                <div className="mt-0.5 px-1">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-bold text-black truncate max-w-[70%]">
-                            {quiz.title}
-                        </h2>
-                        <div className="flex items-center gap-1.5 text-gray-600">
-                            <div className="flex items-center gap-0.5">
-                                <UserIcon className="w-3.5 h-3.5" />
-                                <span className="text-xs">{quiz.stats?.uniqueUsers ?? 0}</span>
-                            </div>
-                            <div className="flex items-center gap-0.5">
-                                <EyeIcon className="w-3.5 h-3.5" />
-                                <span className="text-xs">{quiz.stats?.totalAttempts ?? 0}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <div className="space-y-8">
             {/* My Quizzes Section */}
@@ -303,7 +190,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <h2 className="text-xl font-bold text-black">My Quizzes</h2>
-                            {myQuizzes.length > 0 && (
+                            {!loading && myQuizzes.length > 0 && (
                                 <button
                                     onClick={() => setIsCreateModalOpen(true)}
                                     className="flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
@@ -313,7 +200,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                 </button>
                             )}
                         </div>
-                        {myQuizzes.length > 0 && (
+                        {!loading && myQuizzes.length > 0 && (
                             <button
                                 onClick={handleMyQuizzesViewToggle}
                                 className="flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
@@ -324,7 +211,16 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                     </div>
 
                     <AnimatePresence mode="wait">
-                        {isMyQuizzesGridView ? (
+                        {loading ? (
+                            <motion.div
+                                key="my-quizzes-skeleton"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                            >
+                                {isMyQuizzesGridView ? <GridSkeleton /> : <CarouselSkeleton />}
+                            </motion.div>
+                        ) : isMyQuizzesGridView ? (
                             <motion.div
                                 key="my-quizzes-grid"
                                 initial={{ opacity: 0, x: 100 }}
@@ -337,7 +233,15 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                 className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
                             >
                                 {myQuizzes.map((quiz) => (
-                                    <QuizCard key={quiz._id} quiz={quiz} isCarousel={false} />
+                                    <QuizCard
+                                        key={quiz._id}
+                                        quiz={quiz}
+                                        isCarousel={false}
+                                        onDelete={handleDeleteQuiz}
+                                        onBookmarkToggle={handleBookmarkToggle}
+                                        deletingQuizId={deletingQuizId}
+                                        bookmarkingQuizId={bookmarkingQuizId}
+                                    />
                                 ))}
                             </motion.div>
                         ) : (
@@ -359,7 +263,15 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                     >
                                         {myQuizzes.length > 0 ? (
                                             myQuizzes.map((quiz) => (
-                                                <QuizCard key={quiz._id} quiz={quiz} isCarousel={true} />
+                                                <QuizCard
+                                                    key={quiz._id}
+                                                    quiz={quiz}
+                                                    isCarousel={true}
+                                                    onDelete={handleDeleteQuiz}
+                                                    onBookmarkToggle={handleBookmarkToggle}
+                                                    deletingQuizId={deletingQuizId}
+                                                    bookmarkingQuizId={bookmarkingQuizId}
+                                                />
                                             ))
                                         ) : (
                                             <button
@@ -390,16 +302,27 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                         <h2 className="text-xl font-bold text-black">
                             {session?.user?.id ? 'Global Quizzes' : 'All Quizzes'}
                         </h2>
-                        <button
-                            onClick={handleGlobalViewToggle}
-                            className="flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
-                        >
-                            {isGlobalGridView ? 'Show Carousel' : 'View All'}
-                        </button>
+                        {!loading && filteredQuizzes.length > 0 && (
+                            <button
+                                onClick={handleGlobalViewToggle}
+                                className="flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
+                            >
+                                {isGlobalGridView ? 'Show Carousel' : 'View All'}
+                            </button>
+                        )}
                     </div>
 
                     <AnimatePresence mode="wait">
-                        {isGlobalGridView ? (
+                        {loading ? (
+                            <motion.div
+                                key="global-quizzes-skeleton"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                            >
+                                {isGlobalGridView ? <GridSkeleton /> : <CarouselSkeleton />}
+                            </motion.div>
+                        ) : isGlobalGridView ? (
                             <motion.div
                                 key="global-grid"
                                 initial={{ opacity: 0, x: 100 }}
@@ -412,7 +335,15 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                 className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
                             >
                                 {filteredQuizzes.map((quiz) => (
-                                    <QuizCard key={quiz._id} quiz={quiz} isCarousel={false} />
+                                    <QuizCard
+                                        key={quiz._id}
+                                        quiz={quiz}
+                                        isCarousel={false}
+                                        onDelete={handleDeleteQuiz}
+                                        onBookmarkToggle={handleBookmarkToggle}
+                                        deletingQuizId={deletingQuizId}
+                                        bookmarkingQuizId={bookmarkingQuizId}
+                                    />
                                 ))}
                             </motion.div>
                         ) : (
@@ -434,14 +365,30 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                                         >
                                             {otherQuizzes.map((quiz) => (
-                                                <QuizCard key={quiz._id} quiz={quiz} isCarousel={true} />
+                                                <QuizCard
+                                                    key={quiz._id}
+                                                    quiz={quiz}
+                                                    isCarousel={true}
+                                                    onDelete={handleDeleteQuiz}
+                                                    onBookmarkToggle={handleBookmarkToggle}
+                                                    deletingQuizId={deletingQuizId}
+                                                    bookmarkingQuizId={bookmarkingQuizId}
+                                                />
                                             ))}
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                                         {filteredQuizzes.map((quiz) => (
-                                            <QuizCard key={quiz._id} quiz={quiz} isCarousel={false} />
+                                            <QuizCard
+                                                key={quiz._id}
+                                                quiz={quiz}
+                                                isCarousel={false}
+                                                onDelete={handleDeleteQuiz}
+                                                onBookmarkToggle={handleBookmarkToggle}
+                                                deletingQuizId={deletingQuizId}
+                                                bookmarkingQuizId={bookmarkingQuizId}
+                                            />
                                         ))}
                                     </div>
                                 )}

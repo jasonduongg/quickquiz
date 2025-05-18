@@ -17,10 +17,10 @@ function MainContent() {
   };
 
   return (
-    <div className="min-h-screen bg-offwhite flex">
+    <div className="min-h-screen bg-offwhite flex font-telegraf">
       <Sidebar />
       <div
-        className={`flex-1 transition-[margin] duration-300 ease-in-out ${isCollapsed ? 'ml-[60px]' : 'ml-[240px]'}`}
+        className={`flex-1 transition-[margin] duration-300 ease-in-out`}
       >
         <div className="h-full flex flex-col">
           <Navbar />

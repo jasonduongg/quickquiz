@@ -11,7 +11,7 @@ export default function Navbar() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
 
-                    <Link href="/" className="text-3xl font-bold text-gray-900">
+                    <Link href="/" className="font-telegraf text-3xl font-bold text-gray-900">
                         QuickQuiz
                     </Link>
 
@@ -41,7 +41,7 @@ export default function Navbar() {
                                 onClick={() => signIn('google')}
                                 className="px-3 py-1.5 text-sm font-medium text-gray-900 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-colors"
                             >
-                                Sign In with Google
+                                Sign In
                             </button>
                         )}
                     </div>
