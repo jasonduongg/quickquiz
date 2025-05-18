@@ -183,7 +183,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
     return (
         <div className="space-y-8">
             {/* My Quizzes Section - Only show when logged in */}
-            {session?.user?.id && (
+            {session?.user?.id && !isGlobalGridView && (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -253,7 +253,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                     damping: 30
                                 }}
                             >
-                                <div className="relative h-[220px]">
+                                <div className="relative h-[240px]">
                                     <div
                                         id="my-quizzes-carousel"
                                         className="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide absolute inset-0"
@@ -274,14 +274,14 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                         ) : (
                                             <button
                                                 onClick={() => setIsCreateModalOpen(true)}
-                                                className="min-w-[280px] w-[280px] h-[200px] bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors flex flex-col items-center justify-center gap-3 group"
+                                                className="min-w-[280px] w-[280px] h-[200px] bg-gray-50 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] border-2 border-dashed border-gray-200 hover:border-gray-300 transition-all duration-200 flex flex-col items-center justify-center gap-3 group"
                                             >
-                                                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors">
-                                                    <PlusIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                                                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                                                    <PlusIcon className="w-6 h-6 text-gray-600" />
                                                 </div>
                                                 <div className="text-center">
-                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Create Your First Quiz</h3>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Start sharing your knowledge</p>
+                                                    <h3 className="text-lg font-semibold text-black">Create Your First Quiz</h3>
+                                                    <p className="text-sm text-gray-600 mt-1">Start sharing your knowledge</p>
                                                 </div>
                                             </button>
                                         )}
@@ -356,7 +356,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                                 }}
                             >
                                 {session?.user?.id ? (
-                                    <div className="relative h-[220px]">
+                                    <div className="relative h-[240px]">
                                         <div
                                             id="global-quizzes-carousel"
                                             className="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide absolute inset-0"

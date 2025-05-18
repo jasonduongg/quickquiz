@@ -46,7 +46,7 @@ export default function AttemptHistoryModal({ isOpen, onClose }: AttemptHistoryM
                             </button>
                         </div>
 
-                        <div className="relative h-[500px]">
+                        <div className="relative h-[500px] overflow-y-auto">
                             <AttemptHistory />
                         </div>
                     </motion.div>

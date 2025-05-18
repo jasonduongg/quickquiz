@@ -73,11 +73,11 @@ export const QuizCard = ({
 
     return (
         <div className={`flex flex-col ${isCarousel ? 'min-w-[280px] w-[280px]' : 'w-full'}`}>
-            <div className="relative w-full">
+            <div className="relative w-full group">
                 <Link
                     href={`/quiz/${quiz._id}`}
                     onClick={handleQuizClick}
-                    className={`block ${isCarousel ? 'h-[200px]' : 'aspect-[4/3]'} rounded-lg overflow-hidden`}
+                    className={`block ${isCarousel ? 'h-[200px]' : 'aspect-[4/3]'} rounded-xl overflow-hidden bg-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-200`}
                 >
                     <div className="w-full h-full perspective-1000">
                         <motion.div
@@ -117,7 +117,7 @@ export const QuizCard = ({
 
                             {/* Back - Stats */}
                             <motion.div
-                                className="absolute w-full h-full bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm cursor-pointer"
+                                className="absolute w-full h-full bg-gray-50 p-4 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-200 cursor-pointer"
                                 style={{
                                     backfaceVisibility: "hidden",
                                     WebkitBackfaceVisibility: "hidden",
@@ -149,8 +149,8 @@ export const QuizCard = ({
                                                 }}
                                                 disabled={bookmarkingQuizId === quiz._id}
                                                 className={`p-1.5 rounded-full shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${quiz.isBookmarked
-                                                    ? 'bg-yellow-400 hover:bg-yellow-500 text-white'
-                                                    : 'bg-white hover:bg-gray-100 text-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300'
+                                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                    : 'bg-white hover:bg-gray-100 text-black'
                                                     }`}
                                                 title={quiz.isBookmarked ? "Remove bookmark" : "Bookmark quiz"}
                                             >
@@ -165,23 +165,23 @@ export const QuizCard = ({
 
                                     <div className="space-y-2">
                                         <div className="flex items-center">
-                                            <span className="text-xs font-bold text-gray-900 dark:text-white">Global Attempts:</span>
-                                            <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{quiz.stats?.totalAttempts ?? 0}</span>
+                                            <span className="text-xs font-bold text-black">Global Attempts:</span>
+                                            <span className="text-xs text-black ml-1">{quiz.stats?.totalAttempts ?? 0}</span>
                                         </div>
 
                                         {session && (
                                             <div className="space-y-2">
                                                 <div className="flex items-center">
-                                                    <span className="text-xs font-bold text-gray-900 dark:text-white">Your Attempts:</span>
-                                                    <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{quiz.stats?.userAttempts?.attempts ?? 0}</span>
+                                                    <span className="text-xs font-bold text-black">Your Attempts:</span>
+                                                    <span className="text-xs text-black ml-1">{quiz.stats?.userAttempts?.attempts ?? 0}</span>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <p className="text-xs text-gray-600 dark:text-gray-300">
+                                                    <p className="text-xs text-black">
                                                         {quiz.stats?.userAttempts ?
                                                             `Best: ${Math.round((quiz.stats.userAttempts.bestScore * quiz.questions.length) / 100)}/${quiz.questions.length} correct`
                                                             : 'No Score yet'}
                                                     </p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-300">
+                                                    <p className="text-xs text-black">
                                                         {quiz.stats?.userAttempts ?
                                                             `Average: ${Math.round((quiz.stats.userAttempts.averageScore * quiz.questions.length) / 100)}/${quiz.questions.length} correct`
                                                             : ''}
@@ -192,13 +192,13 @@ export const QuizCard = ({
                                     </div>
 
                                     {/* Stats below divider */}
-                                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 space-y-1">
+                                    <div className="mt-2 pt-2 border-t border-gray-200 space-y-1">
                                         <div className="flex items-center">
-                                            <span className="text-xs font-bold text-gray-900 dark:text-white">Questions:</span>
-                                            <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{quiz.questions.length}</span>
+                                            <span className="text-xs font-bold text-black">Questions:</span>
+                                            <span className="text-xs text-black ml-1">{quiz.questions.length}</span>
                                         </div>
                                         <div className="flex items-center">
-                                            <span className="text-xs font-bold text-gray-900 dark:text-white">Difficulty:</span>
+                                            <span className="text-xs font-bold text-black">Difficulty:</span>
                                             <span className={`text-xs capitalize ml-1 ${quiz.metadata.difficulty === 'easy' ? 'text-green-500' :
                                                 quiz.metadata.difficulty === 'medium' ? 'text-yellow-500' :
                                                     'text-red-500'
@@ -214,12 +214,12 @@ export const QuizCard = ({
                 </Link>
             </div>
 
-            <div className="mt-0.5 px-1">
+            <div className="mt-1.5 px-1">
                 <div className="flex items-center justify-between">
                     <h2 className="text-sm font-bold text-black truncate max-w-[70%]">
                         {quiz.title}
                     </h2>
-                    <div className="flex items-center gap-1.5 text-gray-600">
+                    <div className="flex items-center gap-1.5 text-black">
                         <div className="flex items-center gap-0.5">
                             <UserIcon className="w-3.5 h-3.5" />
                             <span className="text-xs">{quiz.stats?.uniqueUsers ?? 0}</span>
