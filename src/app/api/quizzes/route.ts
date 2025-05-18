@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import connectDB from '@/lib/db';
-import { Quiz, getQuizStats, getUserQuizStats, QuizStats, IQuiz, getAllQuizzes } from '@/lib/models/quiz';
-import { getUserByEmail, User } from '@/lib/models/user';
+import { Quiz, getQuizStats, QuizStats, getAllQuizzes, createQuiz } from '@/lib/models/quiz';
+import { getUserByEmail, incrementQuizzesCreated } from '@/lib/models/user';
 import { ObjectId } from 'mongodb';
 
 export async function GET(request: Request) {
@@ -82,13 +82,10 @@ export async function POST(request: Request) {
             createdBy: new ObjectId(user._id)
         };
 
-        const quizId = await Quiz.create(quizData);
-        await Quiz.updateOne(
-            { _id: quizId },
-            { $inc: { 'stats.totalQuizzesCreated': 1 } }
-        );
+        const quizId = await createQuiz(quizData);
+        await incrementQuizzesCreated(session.user.email);
 
-        return NextResponse.json({ quizId });
+        return NextResponse.json({ quizId: quizId.toString() });
     } catch (error) {
         console.error('Error in POST /api/quizzes:', error);
         return NextResponse.json(

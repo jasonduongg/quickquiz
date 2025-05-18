@@ -14,7 +14,7 @@ export interface IQuizQuestion {
 export interface IQuiz extends Document {
     _id: ObjectId;
     title: string;
-    description: string;
+    description?: string;
     questions: IQuizQuestion[];
     createdBy: ObjectId;
     createdAt: Date;
@@ -38,7 +38,7 @@ const QuizQuestionSchema = new Schema<IQuizQuestion>({
 
 const QuizSchema = new Schema<IQuiz>({
     title: { type: String, required: true },
-    description: { type: String, required: true },
+    description: { type: String, required: false },
     questions: [QuizQuestionSchema],
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     metadata: {
@@ -98,7 +98,7 @@ export async function getAllQuizzes() {
 
 export interface CreateQuizData {
     title: string;
-    description: string;
+    description?: string;
     questions: IQuizQuestion[];
     createdBy: ObjectId;
     metadata: {
@@ -110,18 +110,55 @@ export interface CreateQuizData {
     imageId: string;
 }
 
+// Add a new interface for MongoDB documents
+export interface QuizDocument {
+    _id: ObjectId;
+    title: string;
+    description?: string;
+    questions: IQuizQuestion[];
+    createdBy: ObjectId;
+    metadata: {
+        difficulty: string;
+        generatedAt: string;
+        modelUsed: string;
+        seed: number;
+    };
+    imageId: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 export async function createQuiz(quizData: CreateQuizData) {
     const client = await clientPromise;
     const db = client.db();
     const now = new Date();
 
-    const newQuiz = {
-        ...quizData,
+    // Create a plain MongoDB document
+    const newQuiz: QuizDocument = {
+        _id: new ObjectId(),
+        title: quizData.title,
+        description: quizData.description,
+        questions: quizData.questions,
+        createdBy: quizData.createdBy,
+        metadata: quizData.metadata,
+        imageId: quizData.imageId,
         createdAt: now,
-        updatedAt: now,
+        updatedAt: now
     };
 
-    const result = await db.collection<IQuiz>('quizzes').insertOne(newQuiz as IQuiz);
+    // Log the data being saved
+    console.log('Saving quiz data:', JSON.stringify(newQuiz, null, 2));
+
+    const result = await db.collection<QuizDocument>('quizzes').insertOne(newQuiz);
+
+    // Verify the saved data
+    const savedQuiz = await db.collection<QuizDocument>('quizzes').findOne({ _id: result.insertedId });
+    console.log('Saved quiz data:', JSON.stringify(savedQuiz, null, 2));
+
+    if (!savedQuiz) {
+        throw new Error('Failed to verify saved quiz data');
+    }
+
     return result.insertedId;
 }
 

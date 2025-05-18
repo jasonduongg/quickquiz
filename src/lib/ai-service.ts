@@ -35,12 +35,44 @@ export class AIService {
     private temperature: number;
 
     constructor() {
+        if (!process.env.OPENAI_API_KEY) {
+            throw new Error('OPENAI_API_KEY is not set in environment variables');
+        }
+
         this.client = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
         });
-        this.model = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
-        this.maxTokens = parseInt(process.env.MAX_TOKENS || '2000');
-        this.temperature = parseFloat(process.env.TEMPERATURE || '0.7');
+
+        // Validate and set model
+        this.model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
+        if (!['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo-preview'].includes(this.model)) {
+            console.warn(`Invalid model ${this.model}, defaulting to gpt-3.5-turbo`);
+            this.model = 'gpt-3.5-turbo';
+        }
+
+        // Validate and set max tokens
+        const maxTokens = parseInt(process.env.MAX_TOKENS || '2000');
+        if (isNaN(maxTokens) || maxTokens <= 0) {
+            console.warn('Invalid MAX_TOKENS, defaulting to 2000');
+            this.maxTokens = 2000;
+        } else {
+            this.maxTokens = maxTokens;
+        }
+
+        // Validate and set temperature
+        const temperature = parseFloat(process.env.TEMPERATURE || '0.7');
+        if (isNaN(temperature) || temperature < 0 || temperature > 1) {
+            console.warn('Invalid TEMPERATURE, defaulting to 0.7');
+            this.temperature = 0.7;
+        } else {
+            this.temperature = temperature;
+        }
+
+        console.log('AIService initialized with:', {
+            model: this.model,
+            maxTokens: this.maxTokens,
+            temperature: this.temperature
+        });
     }
 
     private async generateQuizImage(topic: string): Promise<string> {
@@ -156,7 +188,7 @@ Ensure the questions are challenging but fair, and the explanations are clear an
             const quizResponse = {
                 quizId: uuidv4(),
                 topic: quizContent.quizData.topic,
-                questions: quizContent.quizData.questions.map((q: any) => ({
+                questions: quizContent.quizData.questions.map((q: QuizQuestion) => ({
                     id: q.id,
                     text: q.text,
                     options: q.options,

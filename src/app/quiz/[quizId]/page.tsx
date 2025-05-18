@@ -2,7 +2,6 @@
 
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
-import { ObjectId } from 'mongodb';
 
 interface QuizQuestion {
     id: number;
@@ -197,8 +196,8 @@ export default function QuizPage({ params }: { params: Promise<{ quizId: string 
                                             Question {feedback.id}
                                         </h3>
                                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${isCorrect
-                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                             }`}>
                                             {isCorrect ? 'Correct' : 'Incorrect'}
                                         </span>

@@ -6,6 +6,7 @@ type MongooseCache = {
 };
 
 declare global {
+    // eslint-disable-next-line no-var
     var mongoose: MongooseCache | undefined;
 }
 
@@ -15,7 +16,8 @@ if (!MONGODB_URI) {
     throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
 
-let cached: MongooseCache = global.mongoose || { conn: null, promise: null };
+// eslint-disable-next-line no-var
+var cached: MongooseCache = global.mongoose || { conn: null, promise: null };
 
 if (!global.mongoose) {
     global.mongoose = cached;

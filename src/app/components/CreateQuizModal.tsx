@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useRouter } from 'next/navigation';
 
 interface CreateQuizModalProps {
     isOpen: boolean;
@@ -9,6 +10,7 @@ interface CreateQuizModalProps {
 }
 
 export default function CreateQuizModal({ isOpen, onClose, onQuizCreated }: CreateQuizModalProps) {
+    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [topic, setTopic] = useState('');
@@ -22,7 +24,7 @@ export default function CreateQuizModal({ isOpen, onClose, onQuizCreated }: Crea
             setLoading(true);
             setError(null);
 
-            const response = await fetch('/api/quizzes', {
+            const response = await fetch('/api/quizzes/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -38,10 +40,14 @@ export default function CreateQuizModal({ isOpen, onClose, onQuizCreated }: Crea
                 throw new Error(data.error || 'Failed to create quiz');
             }
 
+            const { quizId } = await response.json();
             onQuizCreated();
             onClose();
             setTopic('');
             setDifficulty('medium');
+
+            // Navigate to the quiz page
+            router.push(`/quiz/${quizId}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {

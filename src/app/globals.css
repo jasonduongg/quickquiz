@@ -42,7 +42,6 @@ body {
   --color-offwhite: #f8f9fa;
 }
 
-/* Test class to verify font loading */
 .font-telegraf {
   font-family: 'PPTelegraf', sans-serif !important;
 }

@@ -1,11 +1,9 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
-import { EyeIcon, TrashIcon, PlusIcon, UserIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
-import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import CreateQuizModal from './CreateQuizModal';
 import { QuizCard, CarouselSkeleton, GridSkeleton } from './QuizCard';
 
@@ -184,8 +182,8 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
 
     return (
         <div className="space-y-8">
-            {/* My Quizzes Section */}
-            {session?.user?.id && !isGlobalGridView && (
+            {/* My Quizzes Section - Only show when logged in */}
+            {session?.user?.id && (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -193,7 +191,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                             {!loading && myQuizzes.length > 0 && (
                                 <button
                                     onClick={() => setIsCreateModalOpen(true)}
-                                    className="flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
+                                    className="flex items-center gap-1 px-3 py-1 bg-blue-700 text-white text-sm rounded-lg hover:bg-blue-800 transition-colors"
                                 >
                                     <PlusIcon className="w-4 h-4" />
                                     <span>Create</span>
@@ -203,7 +201,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                         {!loading && myQuizzes.length > 0 && (
                             <button
                                 onClick={handleMyQuizzesViewToggle}
-                                className="flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
+                                className="flex items-center gap-1 px-3 py-1 bg-blue-700 text-white text-sm rounded-lg hover:bg-blue-800 transition-colors"
                             >
                                 {isMyQuizzesGridView ? 'Show Carousel' : 'View All'}
                             </button>
@@ -305,7 +303,7 @@ export default function QuizList({ searchQuery = '' }: QuizListProps) {
                         {!loading && filteredQuizzes.length > 0 && (
                             <button
                                 onClick={handleGlobalViewToggle}
-                                className="flex items-center gap-1 px-3 py-1 bg-black text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
+                                className="flex items-center gap-1 px-3 py-1 bg-blue-700 text-white text-sm rounded-lg hover:bg-blue-800 transition-colors"
                             >
                                 {isGlobalGridView ? 'Show Carousel' : 'View All'}
                             </button>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { Quiz, IQuizQuestion, QuizAttempt, createQuizAttempt } from '@/lib/models/quiz';
+import { Quiz, QuizAttempt, createQuizAttempt } from '@/lib/models/quiz';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';

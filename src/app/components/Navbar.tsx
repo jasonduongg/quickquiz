@@ -2,6 +2,7 @@
 
 import { useSession, signIn, signOut } from 'next-auth/react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Navbar() {
     const { data: session, status } = useSession();
@@ -11,8 +12,9 @@ export default function Navbar() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
 
-                    <Link href="/" className="font-telegraf text-3xl font-bold text-gray-900">
-                        QuickQuiz
+                    <Link href="/" className="font-telegraf text-3xl font-bold">
+                        <span className="text-blue-700">Quick</span>
+                        <span className="text-gray-900">Quiz</span>
                     </Link>
 
                     <div className="flex items-center">
@@ -23,11 +25,16 @@ export default function Navbar() {
                         ) : session ? (
                             <div className="flex items-center space-x-4">
                                 {session.user?.image && (
-                                    <img
-                                        src={session.user.image}
-                                        alt={session.user.name || 'User'}
-                                        className="w-8 h-8 rounded-full"
-                                    />
+                                    <div className="relative w-8 h-8">
+                                        <Image
+                                            src={session.user.image}
+                                            alt={session.user.name || 'User'}
+                                            fill
+                                            sizes="32px"
+                                            className="rounded-full"
+                                            priority={true}
+                                        />
+                                    </div>
                                 )}
                                 <button
                                     onClick={() => signOut()}

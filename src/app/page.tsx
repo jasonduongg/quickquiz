@@ -5,12 +5,12 @@ import QuizList from './components/QuizList';
 import Navbar from './components/Navbar';
 import SearchBar from './components/SearchBar';
 import Sidebar from './components/Sidebar';
-import { useSidebar } from './contexts/SidebarContext';
 import { SidebarProvider } from './contexts/SidebarContext';
+import { useSession } from 'next-auth/react';
 
 function MainContent() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { isCollapsed } = useSidebar();
+  const { data: session } = useSession();
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -18,7 +18,7 @@ function MainContent() {
 
   return (
     <div className="min-h-screen bg-offwhite flex font-telegraf">
-      <Sidebar />
+      {session && <Sidebar />}
       <div
         className={`flex-1 transition-[margin] duration-300 ease-in-out`}
       >

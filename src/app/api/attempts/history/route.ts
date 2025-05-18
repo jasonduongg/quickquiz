@@ -1,18 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { getUserQuizAttempts, QuizAttempt } from '@/lib/models/quiz';
-import { Quiz } from '@/lib/models/quiz';
-import { ObjectId } from 'mongodb';
+import { getUserQuizAttempts } from '@/lib/models/quiz';
 import clientPromise from '@/lib/db/mongodb';
-
-interface AttemptWithQuiz extends QuizAttempt {
-    quiz: {
-        _id: string;
-        title: string;
-        imageId: string;
-    };
-}
 
 export async function GET() {
     try {

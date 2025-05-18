@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ClockIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 
@@ -97,10 +98,13 @@ export default function AttemptHistory() {
                                     <div className="bg-white rounded-lg border border-gray-200 p-2 hover:border-gray-300 transition-colors h-full">
                                         <div className="flex gap-3 h-full">
                                             <div className="relative w-20 h-20 flex-shrink-0">
-                                                <img
+                                                <Image
                                                     src={`/api/images/${attempt.quiz.imageId}`}
                                                     alt={attempt.quiz.title}
-                                                    className="w-full h-full object-cover rounded-md"
+                                                    fill
+                                                    sizes="80px"
+                                                    className="object-cover rounded-md"
+                                                    priority={false}
                                                 />
                                             </div>
                                             <div className="flex-1 min-w-0">

@@ -3,11 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon, BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { QuizCard } from './QuizCard';
 
+interface Question {
+    id: number;
+    text: string;
+    options: string[];
+    correctAnswer: string;
+    explanation: string;
+}
 interface Quiz {
     _id: string;
     title: string;
     description: string;
-    questions: any[];
+    questions: Question[];
     createdAt: string;
     updatedAt: string;
     createdBy: string;
@@ -18,7 +25,11 @@ interface Quiz {
         seed: number;
     };
     imageId: string;
-    stats?: any;
+    stats?: {
+        totalAttempts?: number;
+        averageScore?: number;
+        lastAttempted?: string;
+    };
     isBookmarked?: boolean;
 }
 

@@ -1,8 +1,11 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
+import { useState } from 'react';
 import { EyeIcon, TrashIcon, UserIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
+import SignInModal from './SignInModal';
 
 interface QuizQuestion {
     id: number;
@@ -59,12 +62,21 @@ export const QuizCard = ({
     bookmarkingQuizId
 }: QuizCardProps) => {
     const { data: session } = useSession();
+    const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+
+    const handleQuizClick = (e: React.MouseEvent) => {
+        if (!session) {
+            e.preventDefault();
+            setIsSignInModalOpen(true);
+        }
+    };
 
     return (
         <div className={`flex flex-col ${isCarousel ? 'min-w-[280px] w-[280px]' : 'w-full'}`}>
             <div className="relative w-full">
                 <Link
                     href={`/quiz/${quiz._id}`}
+                    onClick={handleQuizClick}
                     className={`block ${isCarousel ? 'h-[200px]' : 'aspect-[4/3]'} rounded-lg overflow-hidden`}
                 >
                     <div className="w-full h-full perspective-1000">
@@ -91,10 +103,16 @@ export const QuizCard = ({
                                     WebkitBackfaceVisibility: "hidden"
                                 }}
                             >
-                                <img
-                                    src={`/api/images/${quiz.imageId}`}
-                                    alt={`Quiz about ${quiz.title}`}
-                                    className="w-full h-full object-cover rounded-lg" />
+                                <div className="relative w-full h-full">
+                                    <Image
+                                        src={`/api/images/${quiz.imageId}`}
+                                        alt={`Quiz about ${quiz.title}`}
+                                        fill
+                                        sizes={isCarousel ? "280px" : "(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"}
+                                        className="object-cover rounded-lg"
+                                        priority={false}
+                                    />
+                                </div>
                             </motion.div>
 
                             {/* Back - Stats */}
@@ -213,6 +231,11 @@ export const QuizCard = ({
                     </div>
                 </div>
             </div>
+
+            <SignInModal
+                isOpen={isSignInModalOpen}
+                onClose={() => setIsSignInModalOpen(false)}
+            />
         </div>
     );
 };

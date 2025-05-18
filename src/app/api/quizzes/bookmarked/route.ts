@@ -5,22 +5,36 @@ import clientPromise from '@/lib/db/mongodb';
 import { ObjectId } from 'mongodb';
 import { getUserByEmail } from '@/lib/models/user';
 
+interface Question {
+    id: number;
+    text: string;
+    options: string[];
+    correctAnswer: string;
+    explanation: string;
+}
+
+interface QuizMetadata {
+    difficulty: string;
+    generatedAt: string;
+    modelUsed: string;
+    seed: number;
+}
+
 interface Quiz {
     _id: ObjectId;
     title: string;
     description: string;
-    questions: any[];
+    questions: Question[];
     createdAt: string;
     updatedAt: string;
-    createdBy: string;
-    metadata: {
-        difficulty: string;
-        generatedAt: string;
-        modelUsed: string;
-        seed: number;
-    };
+    createdBy: ObjectId;
+    metadata: QuizMetadata;
     imageId: string;
-    stats?: any;
+    stats?: {
+        totalAttempts?: number;
+        averageScore?: number;
+        lastAttempted?: string;
+    };
 }
 
 export async function GET() {

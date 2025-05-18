@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { GridFSBucket, ObjectId } from 'mongodb';
 import clientPromise from '@/lib/db/mongodb';
 
 export async function GET(
-    request: Request,
-    { params }: { params: { imageId: string } }
+    request: NextRequest,
+    context: { params: { imageId: string } }
 ) {
     try {
-        const { imageId } = params;
+        const { imageId } = context.params;
         const client = await clientPromise;
         const db = client.db();
         const bucket = new GridFSBucket(db, { bucketName: 'quizImages' });
