@@ -5,9 +5,10 @@ import { motion } from 'framer-motion';
 import { Bars3Icon, XMarkIcon, BookmarkIcon, ClockIcon } from '@heroicons/react/24/outline';
 import BookmarkModal from './BookmarkModal';
 import AttemptHistoryModal from './AttemptHistoryModal';
+import { useSidebar } from '../contexts/SidebarContext';
 
 export default function Sidebar() {
-    const [isCollapsed, setIsCollapsed] = useState(true);
+    const { isCollapsed, toggleSidebar } = useSidebar();
     const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
     const [isAttemptHistoryModalOpen, setIsAttemptHistoryModalOpen] = useState(false);
 
@@ -17,7 +18,7 @@ export default function Sidebar() {
             <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center justify-center">
                     <button
-                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        onClick={toggleSidebar}
                         className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                         {isCollapsed ? (
