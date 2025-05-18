@@ -1,20 +1,29 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { getUserQuizAttempts } from '@/lib/models/quiz';
 import clientPromise from '@/lib/db/mongodb';
+import { getUserByEmail } from '@/lib/models/user';
 
 export async function GET() {
     try {
         const session = await getServerSession(authOptions);
-        if (!session?.user?.id) {
+        if (!session?.user?.email) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
             );
         }
 
-        const attempts = await getUserQuizAttempts(session.user.id);
+        const user = await getUserByEmail(session.user.email);
+        if (!user) {
+            return NextResponse.json(
+                { error: 'User not found' },
+                { status: 404 }
+            );
+        }
+
+        const attempts = await getUserQuizAttempts(user._id.toString());
 
         // Get quiz details for each attempt
         const client = await clientPromise;

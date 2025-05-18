@@ -3,7 +3,7 @@ import connectDB from '@/lib/db';
 import { Quiz, getQuizById } from '@/lib/models/quiz';
 import { ObjectId } from 'mongodb';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { deleteImage } from '@/lib/db/gridfs';
 
 export async function GET(

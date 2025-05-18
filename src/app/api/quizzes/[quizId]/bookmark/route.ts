@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import clientPromise from '@/lib/db/mongodb';
 import { ObjectId } from 'mongodb';
 import { getUserByEmail } from '@/lib/models/user';
@@ -68,10 +68,10 @@ export async function DELETE(
         await db.collection('users').updateOne(
             { _id: user._id },
             {
-                $pull: {
-                    bookmarkedQuizzes: quizId
-                },
-                $set: { updatedAt: new Date() }
+                $set: {
+                    bookmarkedQuizzes: (await db.collection('users').findOne({ _id: user._id }))?.bookmarkedQuizzes.filter((id: ObjectId) => !id.equals(quizId)) || [],
+                    updatedAt: new Date()
+                }
             }
         );
 

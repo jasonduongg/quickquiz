@@ -4,10 +4,10 @@ import clientPromise from '@/lib/db/mongodb';
 
 export async function GET(
     request: NextRequest,
-    context: { params: { imageId: string } }
+    { params }: { params: { imageId: string } }
 ) {
     try {
-        const { imageId } = context.params;
+        const { imageId } = params;
         const client = await clientPromise;
         const db = client.db();
         const bucket = new GridFSBucket(db, { bucketName: 'quizImages' });

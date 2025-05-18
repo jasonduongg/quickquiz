@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { AIService, QuizRequest } from '@/lib/ai-service';
 import connectDB from '@/lib/db';
 import { Quiz, createQuiz, CreateQuizData } from '@/lib/models/quiz';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 import { getUserByEmail } from '@/lib/models/user';

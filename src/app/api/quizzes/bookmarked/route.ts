@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import clientPromise from '@/lib/db/mongodb';
 import { ObjectId } from 'mongodb';
 import { getUserByEmail } from '@/lib/models/user';

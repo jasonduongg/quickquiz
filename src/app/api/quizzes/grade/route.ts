@@ -3,7 +3,7 @@ import connectDB from '@/lib/db';
 import { Quiz, QuizAttempt, createQuizAttempt } from '@/lib/models/quiz';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { ObjectId } from 'mongodb';
 
 const GradeQuizRequestSchema = z.object({

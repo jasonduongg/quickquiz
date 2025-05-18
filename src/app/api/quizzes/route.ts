@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/db';
-import { Quiz, getQuizStats, QuizStats, getAllQuizzes, createQuiz } from '@/lib/models/quiz';
+import { getQuizStats, QuizStats, getAllQuizzes, createQuiz } from '@/lib/models/quiz';
 import { getUserByEmail, incrementQuizzesCreated } from '@/lib/models/user';
 import { ObjectId } from 'mongodb';
 
